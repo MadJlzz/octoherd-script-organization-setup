@@ -1,0 +1,29 @@
+{
+  "name": "octoherd-script-organization-setup",
+  "version": "0.0.0-development",
+  "private": true,
+  "type": "module",
+  "exports": "./script.js",
+  "bin": {
+    "octoherd-script-organization-setup": "./cli.js"
+  },
+  "description": "This script configure all repositories of within a GitHub organization",
+  "scripts": {
+    "start": "node cli.js",
+    "test": "node script.js"
+  },
+  "repository": "https://github.com/MadJlzz/octoherd-script-organization-setup",
+  "keywords": [
+    "octoherd-script"
+  ],
+  "author": "Julien Klaer (https://www.julienklaer.dev/)",
+  "license": "ISC",
+  "dependencies": {
+    "@octoherd/cli": "^3.3.0"
+  },
+  "release": {
+    "branches": [
+      "main"
+    ]
+  }
+}
