@@ -25,32 +25,7 @@ export async function script(octokit, repository, { template }) {
     owner: templateOwner,
     repo: templateRepo
   })
-  // try {
-  //   for (let i = 0; i < labels.data.length; i++) {
-  //     const {name, description, color} = labels.data[i];
 
-  //     const exists = await octokit.request('GET /repos/{owner}/{repo}/labels/{name}', {
-  //       owner: repoOwner,
-  //       repo: repoName,
-  //       name,
-  //     }).then(() => true, () => false)
-
-  //     octokit.log.info(`${name} label exists: ${exists}`)
-      
-  //     if (!exists) {
-  //       const label = await octokit.request('POST /repos/{owner}/{repo}/labels', {
-  //         owner: repoOwner,
-  //         repo: repoName,
-  //         name,
-  //         description,
-  //         color
-  //       })
-
-  //       octokit.log.info(`${name} updated`)
-  //     }
-  //   }
-  // } catch(e) {
-  //   octokit.log.error(e)
-  // }
+  console.log(labels);
 
 }
