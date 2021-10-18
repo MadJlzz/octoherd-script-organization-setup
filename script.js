@@ -9,6 +9,8 @@
  * @param {string} options.template this is the repo you want the labels to be copied from
  * @param {boolean} options.copyLabels flag to trigger labels copying
  * @param {boolean} options.copyMergeOptions flag to trigger merge option copying
+ * @param {boolean} options.copyDefaultBranchOption flag to trigger default branch option copying
+ *
  */
 export async function script(octokit, repository, options) {
     if (!options.template) {
@@ -29,6 +31,14 @@ export async function script(octokit, repository, options) {
     if (options.copyMergeOptions) {
         octokit.log.info(`Copying merge options from template [${templateOwner}/${templateRepo}] to target repository [${targetOwner}/${targetRepo}]`);
         await copy_merge_options(octokit, {owner: templateOwner, repo: templateRepo}, {
+            owner: targetOwner,
+            repo: targetRepo
+        });
+    }
+
+    if (options.copyDefaultBranchOption) {
+        octokit.log.info(`Copying default branch option from template [${templateOwner}/${templateRepo}] to target repository [${targetOwner}/${targetRepo}]`);
+        await copy_default_branch(octokit, {owner: templateOwner, repo: templateRepo}, {
             owner: targetOwner,
             repo: targetRepo
         });
@@ -124,5 +134,35 @@ async function copy_merge_options(octokit, source, target) {
         owner: target.owner,
         repo: target.repo,
         ...repositoryMergeOpts,
+    });
+}
+
+/**
+ * Copy default branch option from the source into the target.
+ * This function assume the default branch exists in the target repository.
+ *
+ * @param octokit is the authenticated client to perform API request
+ * @param {object} source is the template used for performing the copy
+ * @param {string} source.owner is the owner of the template
+ * @param {string} source.repo is the name of the repository template
+ * @param {object} target is the destination (repository) where we should copy settings to
+ * @param {string} target.owner is the owner of the destination repository
+ * @param {string} target.repo is the name of the destination repository
+ *
+ */
+async function copy_default_branch(octokit, source, target) {
+    const repositoryDefaultBranchOpt = await octokit.request('GET /repos/{owner}/{repo}', {
+        owner: source.owner,
+        repo: source.repo,
+    }).then(value => {
+        return {
+            default_branch: value.data.default_branch
+        }
+    });
+    octokit.log.info(`Default branch setting from template is: [${JSON.stringify(repositoryDefaultBranchOpt)}]`);
+    await octokit.request('PATCH /repos/{owner}/{repo}', {
+        owner: target.owner,
+        repo: target.repo,
+        ...repositoryDefaultBranchOpt,
     });
 }
