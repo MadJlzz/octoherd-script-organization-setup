@@ -1,7 +1,7 @@
 // @ts-check
 
 /**
- * This script copies labels from one repo to the next
+ * This script configures an entire organization based on inputs described in README.md
  *
  * @param {import('@octoherd/cli').Octokit} octokit
  * @param {import('@octoherd/cli').Repository} repository
@@ -15,52 +15,66 @@ export async function script(octokit, repository, {template, labels}) {
     }
 
     const [templateOwner, templateRepo] = template.split("/");
-    const [repoOwner, repoName] = repository.full_name.split("/");
+    const [targetOwner, targetRepo] = repository.full_name.split("/");
 
     if (labels) {
-        octokit.log.info(`Deleting first labels of target repository [${repoOwner}/${repoName}]`, repoOwner, repoName);
-        await delete_labels(octokit, {repoOwner, repoName});
-        octokit.log.info(`Copying now labels from template [${template}] for target repository [${repoOwner}/${repoName}]`, template, repoOwner, repoName);
-        await copy_labels(octokit, {templateOwner, templateRepo}, {repoOwner, repoName});
+        octokit.log.info(`Deleting all labels of target repository [${targetOwner}/${targetRepo}]`);
+        await delete_labels(octokit, targetOwner, targetRepo);
+
+        octokit.log.info(`Copying now labels from template [${template}] for target repository [${targetOwner}/${targetRepo}]`, template, targetOwner, targetRepo);
+        await copy_labels(octokit, {owner: templateOwner, repo: templateRepo}, {owner: targetOwner, repo: targetRepo});
     }
 
 }
 
-async function delete_labels(octokit, {repoOwner, repoName}) {
+/**
+ * Delete all labels for a given <owner>/<repo>.
+ * This method is not efficient because we can't batch the delete requests.
+ *
+ * @param octokit is the authenticated client to perform API request
+ * @param owner is the repository's owner
+ * @param repo is the name of the repository.
+ */
+async function delete_labels(octokit, owner, repo) {
     const labels = await octokit.request('GET /repos/{owner}/{repo}/labels', {
-        owner: repoOwner,
-        repo: repoName
+        owner: owner,
+        repo: repo
     });
     for (let i = 0; i < labels.data.length; i++) {
         const {name} = labels.data[i];
         await octokit.request('DELETE /repos/{owner}/{repo}/labels/{name}', {
-            owner: repoOwner,
-            repo: repoName,
-            name,
+            owner: owner,
+            repo: repo,
+            name: name,
         });
         octokit.log.info(`${name} label deleted`);
     }
 }
 
-async function copy_labels(octokit, {templateOwner, templateRepo}, {repoOwner, repoName}) {
+/**
+ * Copy all labels present in source into target.
+ * This method is not efficient because we need to create labels one by one.
+ *
+ * @param octokit is the authenticated client to perform API request
+ * @param source is the src <owner>/{repo} we want to get the labels from for the copy
+ * @param target is the dst <owner>/{repo} we want to copy the labels to
+ */
+async function copy_labels(octokit, source, target) {
     const labels = await octokit.request('GET /repos/{owner}/{repo}/labels', {
-        owner: templateOwner,
-        repo: templateRepo
+        owner: source.owner,
+        repo: source.repo
     });
     try {
         for (let i = 0; i < labels.data.length; i++) {
             const {name, description, color} = labels.data[i];
-
-            const label = await octokit.request('POST /repos/{owner}/{repo}/labels', {
-                owner: repoOwner,
-                repo: repoName,
-                name,
-                description,
-                color
+            await octokit.request('POST /repos/{owner}/{repo}/labels', {
+                owner: target.owner,
+                repo: target.repo,
+                name: name,
+                description: description,
+                color: color
             });
-            octokit.log.info(label);
-            octokit.log.info(`${name} label created`);
-
+            octokit.log.info(`[${name}] label created`);
         }
     } catch (err) {
         octokit.log.error(`unexpected error occurred when creating labels: ${err}`);
